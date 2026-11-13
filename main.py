@@ -2,8 +2,29 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
 
-resources = []
-bookings = []
+resources = [
+    {
+        "resource_id": 1, "name": "Переговорка А", "capacity": 6    
+    },
+    {
+        "id": 2, "name": "Переговорка Б", "capacity": 10
+    },
+]
+
+bookings = [
+    {
+        "id": 1,
+        "resource_id": 1,
+        "start": datetime(2026, 11, 20, 10, 0),
+        "end": datetime(2026, 11, 20, 11, 0),
+    },
+    {
+        "id": 2,
+        "resource_id": 2,
+        "start": datetime(2026, 11, 20, 10, 0),
+        "end": datetime(2026, 11, 20, 12, 0),
+    },
+]
 
 class ResourceCreate(BaseModel):
     name: str
@@ -48,7 +69,7 @@ def get_all_resources():
            
 
 @app.get("/resources/{resource_id}")
-def get_id(resource_id: int):
+def get_id(resource_id: int | None = None):
     for resource in resources:
         if resource["id"] == resource_id: 
             return resource
@@ -96,8 +117,15 @@ def create_booking(data: BookingCreate):
     return new_booking
             
 @app.get("/bookings")
-def get_all_bookings():
-    return bookings
+def get_all_bookings(resource_id: int | None = None):
+    if resource_id is None:
+            return bookings
+    result = []
+    for booking in bookings:
+        if booking["resource_id"] == resource_id:
+            result.append(booking)
+    return result 
+        
 
 @app.delete("/bookings/{booking_id}", status_code=204)
 def remove_booking(booking_id: int):
@@ -109,3 +137,5 @@ def remove_booking(booking_id: int):
         status_code=404, 
         detail=f"id:{booking_id} not found"
     )
+
+    
