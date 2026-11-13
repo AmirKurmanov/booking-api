@@ -138,4 +138,19 @@ def remove_booking(booking_id: int):
         detail=f"id:{booking_id} not found"
     )
 
-    
+@app.delete("/resources/{resource_id}", status_code=204)
+def remove_resource(resource_id: int):
+    for i, resource in enumerate(resources):
+        if resource["id"] == resource_id:
+            for booking in bookings:
+                if booking["booking_id"] == resource_id:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Resource has bookings, delete them first"
+                    )
+            del resource_id[i]
+            return 
+    raise HTTPException(
+        status_code=404, 
+        detail=f"id: {resource_id} not found"
+    )

@@ -6,3 +6,4 @@ __pycache__/
 GameBot/
 .postman/
 postman/
+uv.lock
