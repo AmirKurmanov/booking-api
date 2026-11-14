@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
+from database import Base, engine
+import models
 
 resources = [
     {
-        "resource_id": 1, "name": "Переговорка А", "capacity": 6    
+        "id": 1, "name": "Переговорка А", "capacity": 6    
     },
     {
         "id": 2, "name": "Переговорка Б", "capacity": 10
@@ -41,6 +43,7 @@ class ResourceUpdate(BaseModel):
 
 app = FastAPI()
 
+Base.metadata.create_all(engine)
 
 @app.get("/health")
 def root():
