@@ -35,6 +35,10 @@ class BookingCreate(BaseModel):
     start: datetime
     end: datetime
 
+class ResourceUpdate(BaseModel):
+    name: str | None = None
+    capacity: int | None = None
+
 app = FastAPI()
 
 
@@ -75,7 +79,29 @@ def get_id(resource_id: int | None = None):
             return resource
     raise HTTPException(status_code=404, detail=f"id:{resource_id} not found")
 
+@app.patch("/resources/{resource_id}")
+def update_resource(resource_id: int, data: ResourceUpdate):
+    for resource in resources:
+        if resource["id"] == resource_id:
+            if data.name is not None:
+                for other in resources:
+                    if other["name"] == data.name and other["id"] != resource_id:
+                        raise HTTPException(
+                            status_code=400, 
+                            detail="Resource with this name already exists"
+                    )
+                resource["name"] = data.name
 
+            if data.capacity is not None:
+                resource["capacity"] = data.capacity
+
+            return resource
+
+    raise HTTPException(
+        status_code=404, 
+        detail=f"id: {resource_id} not found"
+    )
+ 
 @app.post("/bookings", status_code=201)
 def create_booking(data: BookingCreate):
     found = False
