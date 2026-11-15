@@ -79,7 +79,7 @@ def create_resources(data: ResourceCreate, db: Session = Depends(get_db)):
 
 
 
-@app.get("/resources", response_model=list(ResourceRead))
+@app.get("/resources", response_model=list[ResourceRead])
 def get_all_resources(db: Session = Depends(get_db)):
     return db.scalars(select(Resource)).all()
 
