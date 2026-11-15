@@ -1,8 +1,11 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from database import Base, engine
-import models
+from database import Base, engine, get_db
+from models import Resource
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 
 resources = [
     {
