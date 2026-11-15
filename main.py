@@ -51,7 +51,7 @@ class ResourceRead(BaseModel):
 
     id: int
     name: str
-    capacity: str
+    capacity: int
 
 app = FastAPI()
 
