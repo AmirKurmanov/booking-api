@@ -5,6 +5,8 @@ from database import Base, engine, get_db
 from models import Resource
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+import models
+
 
 
 resources = [
@@ -44,6 +46,13 @@ class ResourceUpdate(BaseModel):
     name: str | None = None
     capacity: int | None = None
 
+class ResourceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    capacity: str
+
 app = FastAPI()
 
 Base.metadata.create_all(engine)
@@ -53,28 +62,26 @@ def root():
     return {"status": "ok"}
 
 
-@app.post("/resources", status_code=201)
-def create_resources(data: ResourceCreate):
-    for resource in resources:
-        if resource["name"] == data.name:
-            raise HTTPException(status_code=400, detail="Resource with this name already exists")
+@app.post("/resources", status_code=201, response_model=ResourceRead)
+def create_resources(data: ResourceCreate, db: Session = Depends(get_db)):
+    existing = db.scalar(select(Resource).where(Resource.name == data.name))
+    if existing is not None:
+        raise HTTPException(
+            status_code=400, 
+            detail="Resource with this name already exists"
+        )
+    resource = Resource(name = data.name, capacity=data.capacity)
 
-    new_id = len(resources) + 1
-
-    new_resource = {
-        "id": new_id, 
-        "name": data.name, 
-        "capacity": data.capacity 
-    }
-    resources.append(new_resource)
-
-    return new_resource
+    db.add(resource)
+    db.commit()
+    db.refresh(resource)
+    return resource
 
 
 
-@app.get("/resources")
-def get_all_resources():
-    return resources
+@app.get("/resources", response_model=list(ResourceRead))
+def get_all_resources(db: Session = Depends(get_db)):
+    return db.scalars(select(Resource)).all()
 
            
 
