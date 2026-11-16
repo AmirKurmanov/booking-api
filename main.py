@@ -93,27 +93,26 @@ def get_id(resource_id: int | None = None):
     raise HTTPException(status_code=404, detail=f"id:{resource_id} not found")
 
 @app.patch("/resources/{resource_id}")
-def update_resource(resource_id: int, data: ResourceUpdate):
-    for resource in resources:
-        if resource["id"] == resource_id:
-            if data.name is not None:
-                for other in resources:
-                    if other["name"] == data.name and other["id"] != resource_id:
-                        raise HTTPException(
-                            status_code=400, 
-                            detail="Resource with this name already exists"
-                    )
-                resource["name"] = data.name
+def update_resource(resource_id: int, data: ResourceUpdate, db: Session = Depends(get_db)):
+    resource = db.get(Resource, resource_id)
+    if resource is None:
+        raise HTTPException(status_code=404, detail=f"id: {resource_id} not found")
 
-            if data.capacity is not None:
-                resource["capacity"] = data.capacity
+    if data.name is not None:
+        other = db.scalar(
+            select(Resource).where(Resource.name == data.name, Resource.id != resource_id)
+            )
+        if other is not None:
+            raise HTTPException(status_code=400, detail="Resource with this name already exists")
+        resource.name = data.name
 
-            return resource
+    if data.capacity is not None:
+        resource.capacity = data.capacity 
 
-    raise HTTPException(
-        status_code=404, 
-        detail=f"id: {resource_id} not found"
-    )
+    db.commit()
+    db.refresh(resource) 
+    return resource
+        
  
 @app.post("/bookings", status_code=201)
 def create_booking(data: BookingCreate):
