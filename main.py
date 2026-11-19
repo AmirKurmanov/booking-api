@@ -164,14 +164,11 @@ def create_booking(data: BookingCreate):
     return new_booking
             
 @app.get("/bookings")
-def get_all_bookings(resource_id: int | None = None):
-    if resource_id is None:
-            return bookings
-    result = []
-    for booking in bookings:
-        if booking["resource_id"] == resource_id:
-            result.append(booking)
-    return result 
+def get_all_bookings(resource_id: int | None = None, response_model=list[BookingRead]):
+    query = select(Booking)
+    if resource_id is not None:
+        query = query.where(Booking.resource_id == resource_id)
+    return db.scalars(query).all() 
         
 
 @app.delete("/bookings/{booking_id}", status_code=204)
