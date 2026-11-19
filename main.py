@@ -2,12 +2,12 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from database import Base, engine, get_db
-from models import Resource
+from models import Resource, Booking
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 import models
 
-
+ 
 
 resources = [
     {
@@ -45,6 +45,15 @@ class BookingCreate(BaseModel):
 class ResourceUpdate(BaseModel):
     name: str | None = None
     capacity: int | None = None
+
+class BookingRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    resource_id: int
+    start: datetime
+    end: datetime    
+
 
 class ResourceRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
