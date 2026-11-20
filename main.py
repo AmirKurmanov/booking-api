@@ -9,30 +9,6 @@ import models
 
  
 
-resources = [
-    {
-        "id": 1, "name": "Переговорка А", "capacity": 6    
-    },
-    {
-        "id": 2, "name": "Переговорка Б", "capacity": 10
-    },
-]
-
-bookings = [
-    {
-        "id": 1,
-        "resource_id": 1,
-        "start": datetime(2026, 11, 20, 10, 0),
-        "end": datetime(2026, 11, 20, 11, 0),
-    },
-    {
-        "id": 2,
-        "resource_id": 2,
-        "start": datetime(2026, 11, 20, 10, 0),
-        "end": datetime(2026, 11, 20, 12, 0),
-    },
-]
-
 class ResourceCreate(BaseModel):
     name: str
     capacity: int
@@ -94,14 +70,14 @@ def get_all_resources(db: Session = Depends(get_db)):
 
            
 
-@app.get("/resources/{resource_id}")
-def get_id(resource_id: int | None = None):
-    for resource in resources:
-        if resource["id"] == resource_id: 
-            return resource
-    raise HTTPException(status_code=404, detail=f"id:{resource_id} not found")
+@app.get("/resources/{resource_id}", response_model=ResourceRead)
+def get_resource(resource_id: int, db: Session = Depends(get_db)):
+    resource = db.get(Resource, resource_id)
+    if resource is None:
+        raise HTTPException(status_code=404, detail=f"id: {resource_id} not found")
+    return resource
 
-@app.patch("/resources/{resource_id}")
+@app.patch("/resources/{resource_id}", response_model=ResourceRead)
 def update_resource(resource_id: int, data: ResourceUpdate, db: Session = Depends(get_db)):
     resource = db.get(Resource, resource_id)
     if resource is None:
@@ -152,12 +128,12 @@ def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
     db.refresh(booking)
     return booking
 
-@app.get("/bookings", response_model=list(BookingRead))
+@app.get("/bookings", response_model=list[BookingRead])
 def get_all_bookings(resource_id: int | None = None, db: Session = Depends(get_db)):
     query = select(Booking)
     if resource_id is not None:
         query = query.where(Booking.resource_id == resource_id)
-    return db.scalars(query).all() 
+    return db.scalars(query).all()
         
 
 @app.delete("/bookings/{booking_id}", status_code=204)
@@ -181,11 +157,11 @@ def remove_resource(resource_id: int, db: Session = Depends(get_db)):
             detail=f'id: {resource_id} not found'
         )
 
-    for booking in bookings:
-        if booking["resource_id"] == resource_id:
-            raise HTTPException(
-                status_code=409, 
-                detail="Resource has booking, delete them first"
-            )
+    has_booking = db.scalar(select(Booking).where(Booking.resource_id ==resource_id))
+    if has_booking is not None:
+        raise HTTPException(
+            status_code=409, 
+            detail="Resource has booking, delete them first"
+        )
     db.delete(resource)
     db.commit()
