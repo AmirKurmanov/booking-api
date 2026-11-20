@@ -123,46 +123,35 @@ def update_resource(resource_id: int, data: ResourceUpdate, db: Session = Depend
     return resource
         
  
-@app.post("/bookings", status_code=201)
-def create_booking(data: BookingCreate):
-    found = False
-    for resource in resources:
-        if resource["id"] == data.resource_id:
-            found = True
-            break
-    if not found:    
+@app.post("/bookings", status_code=201, response_model=BookingRead)
+def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
+    resource = db.get(Resource, data.resource_id)
+    if resource is None:
         raise HTTPException(
             status_code=404, 
-            detail="NOT FOUND"
+            detail="Resource not found"
         )
-
-    if data.end <= data.start:
+    if data.start >= data.end:
         raise HTTPException(
             status_code=400, 
-            detail="BAD REQUEST"
+            detail="end must be later than start"
         )
+    overlap = db.scalar(
+        select(Booking).where(
+            Booking.resource_id == data.resource_id, 
+            Booking.start < data.end, 
+            Booking.end > data.start,
+        )
+    )
+    if overlap is not None:
+        raise HTTPException(status_code=409, detail="This time slot is already booked")
 
-    for booking in bookings:
-        if (
-    booking["resource_id"] == data.resource_id
-    and data.start < booking["end"]
-    and data.end > booking["start"]
-):
-            raise HTTPException(
-                status_code=409, 
-                detail="This time slot is already booked"
-            )
+    booking = Booking(resource_id=data.resource_id, start=data.start, end=data.end)
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+    return booking
 
-    new_booking = {
-        "id": len(bookings) + 1, 
-        "resource_id": data.resource_id,
-        "start": data.start, 
-        "end": data.end
-    }
-    bookings.append(new_booking)
-
-    return new_booking
-            
 @app.get("/bookings")
 def get_all_bookings(resource_id: int | None = None, response_model=list[BookingRead]):
     query = select(Booking)
