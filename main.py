@@ -152,8 +152,8 @@ def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
     db.refresh(booking)
     return booking
 
-@app.get("/bookings")
-def get_all_bookings(resource_id: int | None = None, response_model=list[BookingRead]):
+@app.get("/bookings", response_model=list(BookingRead))
+def get_all_bookings(resource_id: int | None = None, db: Session = Depends(get_db)):
     query = select(Booking)
     if resource_id is not None:
         query = query.where(Booking.resource_id == resource_id)
